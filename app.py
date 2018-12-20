@@ -64,8 +64,8 @@ def send_sms():
 
 
 sched = BackgroundScheduler(daemon=True)
-sched.add_job(send_sms, 'interval', minutes=1)
-sched.start()
+sched.add_job(send_sms, 'interval', hours=1)
+# sched.start()
 
 
 @app.route('/webhook', methods=['POST'])
