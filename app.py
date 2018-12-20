@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import os
 import logging
 logging.basicConfig(format='%(levelname)s\t- %(message)s', level=logging.DEBUG)
