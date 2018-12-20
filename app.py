@@ -4,7 +4,7 @@ import os
 import logging
 logging.basicConfig(format='%(levelname)s\t- %(message)s', level=logging.DEBUG)
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
