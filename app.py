@@ -137,7 +137,7 @@ def unsubscribe(from_number):
     """ unsubscribe contact """
     contact = get_contact(from_number)
     if contact:
-        db.session.remove(contact)
+        db.session.delete(contact)
         db.session.commit()
         return jsonify({
             'messages': [{
