@@ -25,9 +25,6 @@ class Contact(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     contact = db.Column(db.String(13), unique=True, nullable=False)
 
-    def __init__(self, contact):
-        self.contact = contact
-
     def __repr__(self):
         return '<Contact {}>'.format(self.contact)
 
@@ -36,9 +33,6 @@ class Message(db.Model):
     """ represents the message to send entity """
     id = db.Column(db.Integer, primary_key=True)
     message = db.Column(db.String(1000), unique=False, nullable=False)
-
-    def __init__(self, message):
-        self.message = message
 
     def __repr__(self):
         return '<Message {}>'.format(self.id)
