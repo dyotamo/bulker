@@ -125,6 +125,11 @@ def page_not_found(e):
     return render_template('404.html'), 404
 
 
+@app.errorhandler(403)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+
 @app.errorhandler(500)
 def server_error(e):
     return jsonify({'error': 'internal server error'}), 500
