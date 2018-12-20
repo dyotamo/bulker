@@ -109,7 +109,9 @@ def get_random_msg():
 def subscribe(from_number):
     """ subscribe contact """
     if not get_contact(from_number):
-        contact = Contact(from_number)
+        contact = Contact()
+        contact.contact = from_number
+
         db.session.add(contact)
         db.session.commit()
         return jsonify({
