@@ -49,8 +49,6 @@ def send_sms():
     import requests
     import json
 
-    from sqlalchemy.sql.expression import func
-
     for contact in Contact.query:
         msg = get_random_msg()
 
@@ -66,8 +64,8 @@ def send_sms():
 
 
 sched = BackgroundScheduler(daemon=True)
-sched.add_job(send_sms, 'interval', minutes=2)
-sched.start()
+sched.add_job(send_sms, 'interval', hours=1)
+# sched.start()
 
 
 @app.route('/webhook', methods=['POST'])
@@ -103,6 +101,8 @@ def get_contact(from_number):
 
 def get_random_msg():
     """ get random message """
+
+    from sqlalchemy.sql.expression import func
     return Message.query.order_by(func.random()).first()
 
 
