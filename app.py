@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import logging
 logging.basicConfig(format='%(levelname)s\t- %(message)s', level=logging.DEBUG)
 
@@ -10,7 +11,8 @@ from flask_admin.contrib.sqla import ModelView
 from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sched.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+    'DATABASE_URL') or 'sqlite:///shed.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PROJECT_ID'] = 'PJ835f870fa34ebe32'
 app.config['SECRET_KEY'] = '8W881_DEsGg3dde8GZLyl2pyMQSQPlDIvJmC'
@@ -121,6 +123,11 @@ def webhook():
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
+
+
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({'error': 'internal server error'}), 500
 
 
 if __name__ == '__main__':
