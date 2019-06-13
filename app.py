@@ -1,12 +1,12 @@
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask_admin.contrib.sqla import ModelView
+from flask_admin import Admin
+from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, render_template, jsonify, request
 import os
 import logging
-logging.basicConfig(format='%(levelname)s\t- %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s\t- %(levelname)s\t- %(message)s', level=logging.INFO)
 
-from flask import Flask, render_template, jsonify, request
-from flask_sqlalchemy import SQLAlchemy
-from flask_admin import Admin
-from flask_admin.contrib.sqla import ModelView
-from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
