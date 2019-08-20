@@ -1,20 +1,29 @@
+import os
+import logging
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask_admin.contrib.sqla import ModelView
 from flask_admin import Admin
 from flask_sqlalchemy import SQLAlchemy
-from flask import Flask, render_template, jsonify, request
-import os
-import logging
-logging.basicConfig(format='%(asctime)s\t- %(levelname)s\t- %(message)s', level=logging.INFO)
+from flask import Flask, render_template, jsonify, request, redirect
+from flask_login import UserMixin, LoginManager, current_user, login_user, logout_user
+
+from utils import send_sms, subscribe, unsubscribe
+
+from dotenv import load_dotenv
+load_dotenv()
+
+logging.basicConfig(
+    format='%(asctime)s\t- %(levelname)s\t- %(message)s', level=logging.INFO)
 
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     'DATABASE_URL') or 'sqlite:///sched.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['PROJECT_ID'] = 'PJ835f870fa34ebe32'
-app.config['SECRET_KEY'] = '8W881_DEsGg3dde8GZLyl2pyMQSQPlDIvJmC'
-app.config['WEBHOOK_KEY'] = 'GQZF3AL3ZGMLFGP4F7GAFLTMUZRLZ972'
+app.config['PROJECT_ID'] = os.environ["PROJECT_ID"]
+app.config['SECRET_KEY'] = os.environ["SECRET_KEY"]
+app.config['WEBHOOK_KEY'] = os.environ["WEBHOOK_KEY"]
 app.config['FLASK_ADMIN_SWATCH'] = 'united'
 
 db = SQLAlchemy(app)
@@ -38,115 +47,46 @@ class Message(db.Model):
         return '<Message {}>'.format(self.id)
 
 
+class User(db.Model, UserMixin):
+    """ represents the user entity """
+    id = db.Column(db.Integer, primary_key=True)
+
+    def __repr__(self):
+        return '<User {}>'.format(self.id)
+
+
+class DModelView(ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated
+
+    def inaccessible_callback(self, name, **kwargs):
+        return redirect("/users/login")
+
+
+login = LoginManager(app)
+
+
+@login.user_loader
+def load_user(user_id):
+    return User.query.get(user_id)
+
+
 # Flask admin interface
-admin = Admin(app, name='Sched', template_mode='bootstrap3')
-admin.add_view(ModelView(Contact, db.session))
-admin.add_view(ModelView(Message, db.session))
+admin = Admin(app, name='Bulker', template_mode='bootstrap3')
+admin.add_view(DModelView(Contact, db.session))
+admin.add_view(DModelView(Message, db.session))
+
+# Login views
+@app.route("/users/login", methods=["GET"])
+def login():
+    login_user(User.query.first())
+    return redirect("/admin")
 
 
-def send_sms():
-    import random
-    import requests
-    import json
-
-    for contact in Contact.query:
-        msg = get_random_msg()
-
-        headers = {'Content-Type': 'application/json'}
-        data = {'content': msg.message, 'to_number': contact.contact}
-
-        requests.post(
-            'https://api.telerivet.com/v1/projects/{}/messages/send'.format(
-                app.config['PROJECT_ID']),
-            auth=(app.config['SECRET_KEY'], ''),
-            headers=headers,
-            data=json.dumps(data))
-
-
-sched = BackgroundScheduler(daemon=True)
-sched.add_job(send_sms, 'interval', hours=1)
-# sched.start()
-
-
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    data = request.form
-
-    if data.get('secret') != app.config['WEBHOOK_KEY']:
-        return jsonify({'error': 'invalid webhook key'}), 403
-
-    if data.get('event') == 'incoming_message':
-        content = data.get('content').upper()
-        from_number = data.get('from_number')
-
-        if content == 'JOIN':
-            return subscribe(from_number)
-
-        if content == 'STOP':
-            return unsubscribe(from_number)
-
-        return jsonify({
-            'messages': [{
-                'content':
-                "Formato de mensagem inválido.\n\nUse JOIN para ativar "
-                "ou STOP para cancelar a subscrição.\n\nObrigado."
-            }]
-        })
-
-
-def get_contact(from_number):
-    """ get the contact object by number """
-    return Contact.query.filter_by(contact=from_number).first()
-
-
-def get_random_msg():
-    """ get random message """
-
-    from sqlalchemy.sql.expression import func
-    return Message.query.order_by(func.random()).first()
-
-
-def subscribe(from_number):
-    """ subscribe contact """
-    if not get_contact(from_number):
-        contact = Contact()
-        contact.contact = from_number
-
-        db.session.add(contact)
-        db.session.commit()
-        return jsonify({
-            'messages': [{
-                'content':
-                "Obrigado pela subscrição.\n\nEm breve passará a receber "
-                "mensagens sobre curiosidades diversas."
-            }]
-        })
-    else:
-        return jsonify({
-            'messages': [{
-                'content': "Contacto já subscrito.\n\nObrigado."
-            }]
-        })
-
-
-def unsubscribe(from_number):
-    """ unsubscribe contact """
-    contact = get_contact(from_number)
-    if contact:
-        db.session.delete(contact)
-        db.session.commit()
-        return jsonify({
-            'messages': [{
-                'content':
-                "A sua subscrição foi cancelada com sucesso.\n\nObrigado."
-            }]
-        })
-    else:
-        return jsonify({
-            'messages': [{
-                'content': "Contacto não subscrito.\n\nObrigado."
-            }]
-        })
+@app.route("/users/logout", methods=["GET"])
+def logout():
+    logout_user()
+    return redirect("/admin")
 
 
 # Web interface errors handlers
@@ -165,5 +105,36 @@ def server_error(e):
     return jsonify({'error': 'internal server error'}), 500
 
 
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    data = request.form
+
+    if data.get('secret') != app.config['WEBHOOK_KEY']:
+        return jsonify({'error': 'invalid webhook key'}), 403
+
+    if data.get('event') == 'incoming_message':
+        content = data.get('content').upper()
+        from_number = data.get('from_number')
+
+        if content == 'JOIN':
+            return subscribe(db, Contact, from_number)
+
+        if content == 'STOP':
+            return unsubscribe(db, Contact, from_number)
+
+        return jsonify({
+            'messages': [{
+                'content':
+                "Formato de mensagem inválido.\n\nUse JOIN para ativar "
+                "ou STOP para cancelar a subscrição.\n\nObrigado."
+            }]
+        })
+
+
+sched = BackgroundScheduler(daemon=True)
+sched.add_job(lambda: send_sms(Contact, Message, app.config["PROJECT_ID"],
+                               app.config["SECRET_KEY"]), 'interval', hours=1)
+sched.start()
+
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
