@@ -1,5 +1,17 @@
 {% extends 'admin/master.html' %}
 
 {% block body %}
-  <p>Welcome to Sched</p>
+
+<div class="jumbotron">
+  <p>
+    Welcome to Sched
+    <small>
+      {% if current_user.is_authenticated %}
+      <a href="{{ url_for('logout') }}">Logout</a>
+      {% else %}
+      <a href="{{ url_for('login') }}">Login</a>
+      {% endif %}
+    </small>
+  </p>
+</div>
 {% endblock %}

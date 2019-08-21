@@ -15,9 +15,12 @@ gunicorn = "*"
 faker = "*"
 python-dotenv = "*"
 flask-login = "*"
+flask-wtf = "*"
+bcrypt = "*"
 
 [dev-packages]
 autopep8 = "*"
+rope = "*"
 
 [requires]
 python_version = "3.6"

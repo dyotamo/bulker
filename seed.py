@@ -1,7 +1,9 @@
 import logging
 
 from faker import Faker
-from app import db, Contact, Message
+from app import db, Contact, Message, User
+
+from bcrypt import hashpw, gensalt
 
 fake = Faker("pt_BR")
 
@@ -16,6 +18,9 @@ for _ in range(50):
 logging.info("Adding contacts...")
 for _ in range(10):
     db.session.add(Contact(contact=fake.phone_number()))
+
+db.session.add(User(email="dyotamo@gmail.com",
+                    password=hashpw("passwd".encode('utf-8'), gensalt())))
 
 db.session.commit()
 logging.info("Finished execution.")

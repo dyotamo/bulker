@@ -63,8 +63,6 @@ def send_sms(contact_model, message_model, project_id, secret_key):
     for contact in contact_model.query:
         msg = get_random_msg(message_model)
 
-        print(">>> Sending to:", contact, msg)
-
         headers = {'Content-Type': 'application/json'}
         data = {'content': msg.message, 'to_number': contact.contact}
 
